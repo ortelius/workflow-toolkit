@@ -47,7 +47,7 @@ jobs:
     permissions:
       contents: write
 
-    if: ${{ input.gh_repository_owner == 'ortelius' && input.gh_event_name == 'push' && input.gh_ref == 'refs/heads/main' }}
+    if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776 # v2.2.1
@@ -61,12 +61,12 @@ jobs:
           gpg_passphrase: ${{ secrets.GPG_PASSPHRASE }}
           gpg_key: ${{ secrets.GPG_KEY }}
           gh_token: ${{ secrets.HELM_INDEXER_TOKEN }}
-          gh_handle: ${{ input.gh_handle }}
-          chart: chart/${{ input.compname }}
-          chart_version: ${{ input.chart_version }}
-          image_repository: ${{ input.image_repository }}
-          image_tag: ${{ input.image_tag }}
-          image_digest: ${{ input.image_digest }}
+          gh_handle: ${{ inputs.gh_handle }}
+          chart: chart/${{ inputs.compname }}
+          chart_version: ${{ inputs.chart_version }}
+          image_repository: ${{ inputs.image_repository }}
+          image_tag: ${{ inputs.image_tag }}
+          image_digest: ${{ inputs.image_digest }}
 
       - name: Trigger Rebuild of Main Chart
         uses: benc-uk/workflow-dispatch@798e70c97009500150087d30d9f11c5444830385 # v1.2.2
