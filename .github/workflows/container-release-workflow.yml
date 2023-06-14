@@ -42,15 +42,31 @@ jobs:
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after a couple of runs
 
-      - name: Image Releaser
-        id: release
-        uses: ortelius/ms-release-action@8d3e173e28e5614e6d26f43d447a5c12baf384f2 # v1.0.0
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+
+      - name: Login to Quay
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+        id: login
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
         with:
-          gh_repository_owner: ${{ inputs.gh_repository_owner }}
-          gh_event_name: ${{ inputs.gh_event_name }}
-          gh_ref: ${{ inputs.gh_ref }}
           registry: ${{ inputs.registry }}
-          image_repo_tag: ${{ inputs.image_repo_tag }}
-          QUAY_USERID: ${{ secrets.QUAY_USERID }}
-          QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+          username: ${{ inputs.QUAY_USERID }}
+          password: ${{ inputs.QUAY_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+        id: build
+        uses: docker/build-push-action@1104d471370f9806843c095c1db02b5a90c5f8b6 # v3.3.1
+        with:
+          push: true
+          tags: ${{ inputs.image_repo_tag }}
+
+      - name: Build Docker Image
+        if: ${{ !(inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main') }}
+        id: build_only
+        uses: docker/build-push-action@1104d471370f9806843c095c1db02b5a90c5f8b6 # v3.3.1
+        with:
+          tags: ${{ inputs.image_repo_tag }}
           
