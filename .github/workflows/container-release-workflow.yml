@@ -15,15 +15,14 @@ on:
       registry:
         required: true
         type: string
-      QUAY_USERID:
-        required: true
-        type: string
-      QUAY_PASSWORD:
-        required: true
-        type: string
       image_repo_tag:
         required: true
         type: string
+    secrets:
+      QUAY_USERID:
+        required: true
+      QUAY_PASSWORD:
+        required: true
     
     outputs:
       digest:
@@ -51,6 +50,7 @@ jobs:
           gh_event_name: ${{ inputs.gh_event_name }}
           gh_ref: ${{ inputs.gh_ref }}
           registry: ${{ inputs.registry }}
-          QUAY_USERID: ${{ inputs.QUAY_USERID }}
-          QUAY_PASSWORD: ${{ inputs.QUAY_PASSWORD }}
           image_repo_tag: ${{ inputs.image_repo_tag }}
+          QUAY_USERID: ${{ secrets.QUAY_USERID }}
+          QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+          
