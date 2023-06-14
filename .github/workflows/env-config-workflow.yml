@@ -1,0 +1,110 @@
+name: Env Setup workflow
+
+on:
+  workflow_call:
+    inputs:
+      gh_head_ref:
+        required: true
+        type: string
+      gh_ref_name:
+        required: true
+        type: string
+      gh_event_repo_name:
+        required: true
+        type: string
+      gh_sha:
+        required: true
+        type: string
+      gh_run_number:
+        required: true
+        type: string
+      gh_repo:
+        required: true
+        type: string
+
+    outputs:
+      short_sha:
+        description: "Github SHA"
+        value: ${{ jobs.setenv.outputs.short_sha }}
+      chart_version:
+        description: "Component chart_version"
+        value: ${{ jobs.setenv.outputs.chart_version }}
+      image_version:
+        description: "Image version"
+        value: ${{ jobs.setenv.outputs.image_version }}
+      image_tag:
+        description: "Image Tag"
+        value: ${{ jobs.setenv.outputs.image_tag }}
+      image_repo_tag:
+        description: "Image Repository Tag"
+        value: ${{ jobs.setenv.outputs.image_repo_tag }}
+      image_repository:
+        description: "Image Repository"
+        value: ${{ jobs.setenv.outputs.image_repository }}
+      registry:
+        description: "Image Registry"
+        value: ${{ jobs.setenv.outputs.registry }}
+      branch:
+        description: "Branch"
+        value: ${{ jobs.setenv.outputs.branch }}
+      compname:
+        description: "Component Name"
+        value: ${{ jobs.setenv.outputs.compname }}
+      dhurl:
+        description: "DHURL"
+        value: ${{ jobs.setenv.outputs.dhurl }}
+      gh_handle:
+        description: "Github Handle"
+        value: ${{ jobs.setenv.outputs.gh_handle }}
+jobs:
+  setenv:
+    runs-on: ubuntu-latest
+
+    outputs:
+      short_sha: ${{ steps.env.outputs.short_sha }}
+      chart_version: ${{ steps.env.outputs.chart_version }}
+      image_version: ${{ steps.env.outputs.image_version }}
+      image_tag: ${{ steps.env.outputs.image_tag }}
+      image_repo_tag: ${{ steps.env.outputs.image_repo_tag }}
+      image_repository: ${{ steps.env.outputs.image_repository }}
+      registry: ${{ steps.env.outputs.registry }}
+      branch: ${{ steps.env.outputs.branch }}
+      compname: ${{ steps.env.outputs.compname }}
+      dhurl: ${{ steps.env.outputs.dhurl }}
+      gh_handle: ${{ steps.env.outputs.gh_handle }}
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776 # v2.2.1
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+        with:
+          fetch-depth: 1
+
+      - name: Export Environment Variable
+        id: env
+        env:
+          DHURL: https://console.deployhub.com
+          REGISTRY: quay.io
+          BRANCH: ${{ inputs.gh_head_ref || inputs.gh_ref_name }}
+        run: |
+          BRANCH=$(echo "${{ env.BRANCH }}" | cut -d'/' -f1)
+          BASE_VERSION=$(curl -s "https://ortelius.github.io/${{ inputs.gh_event_repo_name }}/index.yaml" | grep version: | awk '{print $2}' | cut -f1-2 -d. | sort -u -r --version-sort | head -1)
+          SHORT_SHA=$(echo ${{ inputs.gh_sha }} | cut -c 1-6)
+          {
+           echo "dhurl=${{ env.DHURL }}"
+           echo "branch=${BRANCH}"
+           echo "chart_version=${BASE_VERSION}.${{ inputs.gh_run_number }}"
+           echo "compname=${{ inputs.gh_event_repo_name }}"
+           echo "image_repo_tag=${{ env.REGISTRY }}/${{ inputs.gh_repo }}:${BRANCH}-v${BASE_VERSION}.${{ inputs.gh_run_number }}-g${SHORT_SHA}"
+           echo "image_repository=${{ env.REGISTRY }}/${{ inputs.gh_repo }}"
+           echo "image_tag=${BRANCH}-v${BASE_VERSION}.${{ inputs.gh_run_number }}-g${SHORT_SHA}"
+           echo "image_version=${BASE_VERSION}.${{ inputs.gh_run_number }}-g${SHORT_SHA}"
+           echo "registry=${{ env.REGISTRY }}"
+           echo "short_sha=${SHORT_SHA}"
+           echo "gh_handle=$GITHUB_ACTOR"
+          } >> "$GITHUB_OUTPUT"

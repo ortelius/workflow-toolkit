@@ -1,0 +1,79 @@
+name: Release Workflow
+
+on:
+  workflow_call:
+    inputs:
+      gh_repository_owner:
+        required: true
+        type: string
+      gh_event_name:
+        required: true
+        type: string
+      gh_ref:
+        required: true
+        type: string
+      GPG_KEYRING_BASE64:
+        required: true
+        type: string
+      GPG_PASSPHRASE:
+        required: true
+        type: string
+      GPG_KEY:
+        required: true
+        type: string
+      HELM_INDEXER_TOKEN:
+        required: true
+        type: string
+      gh_handle:
+        required: true
+        type: string
+      compname:
+        required: true
+        type: string
+      chart_version:
+        required: true
+        type: string
+      image_repository:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+      image_digest:
+        required: true
+        type: string
+      
+jobs:
+  helm:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    if: ${{ input.gh_repository_owner == 'ortelius' && input.gh_event_name == 'push' && input.gh_ref == 'refs/heads/main' }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776 # v2.2.1
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - name: Helm Chart Releaser
+        uses: ortelius/ms-cr-action@d98a4163765db41dbc8159f3a31f30f77bbe23bd # v1.2.0
+        with:
+          gpg_keyring_base64: ${{ input.GPG_KEYRING_BASE64 }}
+          gpg_passphrase: ${{ input.GPG_PASSPHRASE }}
+          gpg_key: ${{ input.GPG_KEY }}
+          gh_token: ${{ input.HELM_INDEXER_TOKEN }}
+          gh_handle: ${{ input.gh_handle }}
+          chart: chart/${{ input.compname }}
+          chart_version: ${{ input.chart_version }}
+          image_repository: ${{ input.image_repository }}
+          image_tag: ${{ input.image_tag }}
+          image_digest: ${{ input.image_digest }}
+
+      - name: Trigger Rebuild of Main Chart
+        uses: benc-uk/workflow-dispatch@798e70c97009500150087d30d9f11c5444830385 # v1.2.2
+        with:
+          workflow: generate-main-chart.yml
+          repo: ortelius/ortelius-charts
+          token: ${{ input.HELM_INDEXER_TOKEN }}
