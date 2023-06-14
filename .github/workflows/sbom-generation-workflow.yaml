@@ -1,0 +1,73 @@
+name: Release Workflow
+
+on:
+  workflow_call:
+    inputs:
+      gh_repository_owner:
+        required: true
+        type: string
+      gh_event_name:
+        required: true
+        type: string
+      gh_ref:
+        required: true
+        type: string
+      DHPASS:
+        required: true
+        type: string
+      dhurl:
+        required: true
+        type: string
+      DHUSER:
+        required: true
+        type: string
+      compname:
+        required: true
+        type: string
+      chart_version:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+      digest:
+        required: true
+        type: string
+      image_repo_tag:
+        required: true
+        type: string
+      image_repository:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+      image_version:
+        required: true
+        type: string
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+
+    if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776 # v2.2.1
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - name: SBOM
+        uses: ortelius/ms-sbom-action@78faa3aadef42708432a337fa2953a82ddfd2512 # v1.0.0
+        with:
+          dhpass: ${{ inputs.DHPASS }}
+          dhurl: ${{ inputs.dhurl }}
+          dhuser: ${{ inputs.DHUSER }}
+          compname: ${{ inputs.compname }}
+          chart_version: ${{ inputs.chart_version }}
+          git_branch: ${{ inputs.branch }}
+          image_digest: ${{inputs.digest }}
+          image_repo_tag: ${{ inputs.image_repo_tag }}
+          image_repository: ${{ inputs.image_repository }}
+          image_tag: ${{ inputs.image_tag }}
+          image_version: ${{ inputs.image_version }}
