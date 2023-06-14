@@ -15,7 +15,7 @@ on:
       gh_handle:
         required: true
         type: string
-      compname:
+      chart:
         required: true
         type: string
       chart_version:
@@ -37,7 +37,7 @@ on:
         required: true
       GPG_KEY:
         required: true
-      HELM_INDEXER_TOKEN:
+      gh_token:
         required: true
       
 jobs:
@@ -73,4 +73,4 @@ jobs:
         with:
           workflow: generate-main-chart.yml
           repo: ortelius/ortelius-charts
-          token: ${{ secrets.HELM_INDEXER_TOKEN }}
+          token: ${{ secrets.gh_token }}
