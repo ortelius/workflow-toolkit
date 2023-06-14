@@ -1,4 +1,4 @@
-name: Release Workflow
+name: Container Release Workflow
 
 on:
   workflow_call:

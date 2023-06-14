@@ -1,4 +1,4 @@
-name: Release Workflow
+name: Trivy Scan Workflow
 
 on:
   workflow_call:
