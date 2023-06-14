@@ -12,13 +12,7 @@ on:
       gh_ref:
         required: true
         type: string
-      DHPASS:
-        required: true
-        type: string
       dhurl:
-        required: true
-        type: string
-      DHUSER:
         required: true
         type: string
       compname:
@@ -45,6 +39,11 @@ on:
       image_version:
         required: true
         type: string
+    secrets:
+      DHPASS:
+        required: true
+      DHUSER:
+        required: true
 
 jobs:
   sbom:
