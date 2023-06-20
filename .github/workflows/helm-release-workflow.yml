@@ -60,7 +60,7 @@ jobs:
           gpg_keyring_base64: ${{ secrets.GPG_KEYRING_BASE64 }}
           gpg_passphrase: ${{ secrets.GPG_PASSPHRASE }}
           gpg_key: ${{ secrets.GPG_KEY }}
-          gh_token: ${{ secrets.HELM_INDEXER_TOKEN }}
+          gh_token: ${{ secrets.gh_token }}
           gh_handle: ${{ inputs.gh_handle }}
           chart: ${{ inputs.chart }}
           chart_version: ${{ inputs.chart_version }}

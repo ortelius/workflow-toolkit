@@ -59,9 +59,9 @@ jobs:
       - name: SBOM
         uses: ortelius/ms-sbom-action@78faa3aadef42708432a337fa2953a82ddfd2512 # v1.0.0
         with:
-          dhpass: ${{ inputs.DHPASS }}
+          dhpass: ${{ secrets.DHPASS }}
           dhurl: ${{ inputs.dhurl }}
-          dhuser: ${{ inputs.DHUSER }}
+          dhuser: ${{ secrets.DHUSER }}
           compname: ${{ inputs.compname }}
           chart_version: ${{ inputs.chart_version }}
           git_branch: ${{ inputs.branch }}
