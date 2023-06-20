@@ -39,11 +39,12 @@ on:
       image_version:
         required: true
         type: string
-    secrets:
       DHPASS:
         required: true
+        type: string
       DHUSER:
         required: true
+        type: string
 
 jobs:
   sbom:
@@ -59,9 +60,9 @@ jobs:
       - name: SBOM
         uses: ortelius/ms-sbom-action@78faa3aadef42708432a337fa2953a82ddfd2512 # v1.0.0
         with:
-          dhpass: ${{ secrets.DHPASS }}
+          dhpass: ${{ inputs.DHPASS }}
           dhurl: ${{ inputs.dhurl }}
-          dhuser: ${{ secrets.DHUSER }}
+          dhuser: ${{ inputs.DHUSER }}
           compname: ${{ inputs.compname }}
           chart_version: ${{ inputs.chart_version }}
           git_branch: ${{ inputs.branch }}

@@ -30,15 +30,18 @@ on:
       image_digest:
         required: true
         type: string
-    secrets:
       GPG_KEYRING_BASE64:
         required: true
+        type: string
       GPG_PASSPHRASE:
         required: true
+        type: string
       GPG_KEY:
         required: true
+        type: string
       gh_token:
         required: true
+        type: string
       
 jobs:
   helm:
@@ -57,10 +60,10 @@ jobs:
       - name: Helm Chart Releaser
         uses: ortelius/ms-cr-action@d98a4163765db41dbc8159f3a31f30f77bbe23bd # v1.2.0
         with:
-          gpg_keyring_base64: ${{ secrets.GPG_KEYRING_BASE64 }}
-          gpg_passphrase: ${{ secrets.GPG_PASSPHRASE }}
-          gpg_key: ${{ secrets.GPG_KEY }}
-          gh_token: ${{ secrets.gh_token }}
+          gpg_keyring_base64: ${{ inputs.GPG_KEYRING_BASE64 }}
+          gpg_passphrase: ${{ inputs.GPG_PASSPHRASE }}
+          gpg_key: ${{ inputs.GPG_KEY }}
+          gh_token: ${{ inputs.gh_token }}
           gh_handle: ${{ inputs.gh_handle }}
           chart: ${{ inputs.chart }}
           chart_version: ${{ inputs.chart_version }}
@@ -73,4 +76,4 @@ jobs:
         with:
           workflow: generate-main-chart.yml
           repo: ortelius/ortelius-charts
-          token: ${{ secrets.gh_token }}
+          token: ${{ inputs.gh_token }}
