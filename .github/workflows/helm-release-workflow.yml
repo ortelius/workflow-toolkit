@@ -62,7 +62,7 @@ jobs:
           gpg_key: ${{ secrets.GPG_KEY }}
           gh_token: ${{ secrets.HELM_INDEXER_TOKEN }}
           gh_handle: ${{ inputs.gh_handle }}
-          chart: chart/${{ inputs.compname }}
+          chart: ${{ inputs.chart }}
           chart_version: ${{ inputs.chart_version }}
           image_repository: ${{ inputs.image_repository }}
           image_tag: ${{ inputs.image_tag }}
