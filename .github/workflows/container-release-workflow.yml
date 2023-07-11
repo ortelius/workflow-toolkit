@@ -52,8 +52,8 @@ jobs:
         uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
         with:
           registry: ${{ inputs.registry }}
-          username: ${{ inputs.QUAY_USERID }}
-          password: ${{ inputs.QUAY_PASSWORD }}
+          username: ${{ secrets.QUAY_USERID }}
+          password: ${{ secrets.QUAY_PASSWORD }}
 
       - name: Build and Push Docker Image
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
