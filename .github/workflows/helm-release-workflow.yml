@@ -122,7 +122,7 @@ jobs:
         id: cr
         run: |
           set -x
-          gh_token="${{ inputs.gh_token }}"
+          gh_token="${{ secrets.gh_token }}"
           gpg_keyring_base64="${{ secrets.GPG_KEYRING_BASE64 }}"
           gpg_passphrase="${{ secrets.gpg_passphrase }}"
           gpg_keyring="/tmp/secring.gpg"
@@ -188,7 +188,7 @@ jobs:
           git push -f
         shell: bash
         env:
-          GH_TOKEN: ${{ inputs.gh_token }}
+          GH_TOKEN: ${{ secrets.gh_token }}
 
       - name: Trigger Rebuild of Main Chart
         uses: benc-uk/workflow-dispatch@798e70c97009500150087d30d9f11c5444830385 # v1.2.2
