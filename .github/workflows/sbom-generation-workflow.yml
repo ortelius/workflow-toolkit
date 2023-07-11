@@ -39,12 +39,11 @@ on:
       image_version:
         required: true
         type: string
+    secrets:
       DHPASS:
         required: true
-        type: string
       DHUSER:
         required: true
-        type: string
 
 jobs:
   sbom:
@@ -57,17 +56,35 @@ jobs:
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
-      - name: SBOM
-        uses: ortelius/ms-sbom-action@78faa3aadef42708432a337fa2953a82ddfd2512 # v1.0.0
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@07978da4bdb4faa726e52dfc6b1bed63d4b56479 # v0.13.3
+        id: sbom
         with:
-          dhpass: ${{ inputs.DHPASS }}
-          dhurl: ${{ inputs.dhurl }}
-          dhuser: ${{ inputs.DHUSER }}
-          compname: ${{ inputs.compname }}
-          chart_version: ${{ inputs.chart_version }}
-          git_branch: ${{ inputs.branch }}
-          image_digest: ${{inputs.digest }}
-          image_repo_tag: ${{ inputs.image_repo_tag }}
-          image_repository: ${{ inputs.image_repository }}
-          image_tag: ${{ inputs.image_tag }}
-          image_version: ${{ inputs.image_version }}
+          format: cyclonedx-json
+          output-file: /tmp/cyclonedx.json
+          image: ${{ inputs.image_repo_tag }}
+
+      - name: Update Compnent
+        id: updatecomp
+        env:
+          DHURL: ${{ inputs.dhurl }}
+          DHUSER: ${{ secrets.DHUSER }}
+          DHPASS: ${{ secrets.DHPASS }}
+          GIT_BRANCH: ${{ inputs.branch }}
+          CHART_VERSION: ${{ inputs.chart_version }}
+          CHART: ${{ inputs.chart_name }}
+          COMPNAME: ${{ inputs.compname }}
+          DIGEST: ${{ inputs.digest }}
+          IMAGE_REPO: ${{ inputs.image_repository }}
+          IMAGE_REPO_TAG: ${{ inputs.image_repo_tag }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          IMAGE_VERSION: ${{ inputs.image_version }}
+          SHORT_SHA: ${{ inputs.short_sha }}
+        run: |
+          pip install ortelius-cli
+          dh updatecomp --rsp component.toml --deppkg cyclonedx@/tmp/cyclonedx.json
+        shell: bash
