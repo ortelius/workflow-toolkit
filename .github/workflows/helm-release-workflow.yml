@@ -30,18 +30,15 @@ on:
       image_digest:
         required: true
         type: string
+    secrets:
       GPG_KEYRING_BASE64:
         required: true
-        type: string
       GPG_PASSPHRASE:
         required: true
-        type: string
       GPG_KEY:
         required: true
-        type: string
       gh_token:
         required: true
-        type: string
       
 jobs:
   helm:
@@ -57,23 +54,146 @@ jobs:
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
-      - name: Helm Chart Releaser
-        uses: ortelius/ms-cr-action@d98a4163765db41dbc8159f3a31f30f77bbe23bd # v1.2.0
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+
+      - name: Configure Git
+        id: git
+        run: |
+          git config user.name "${{ inputs.gh_handle }}"
+          git config user.email "${{ inputs.gh_handle }}@users.noreply.github.com"
+        shell: bash
+
+      - name: Get all branches
+        id: branches
+        run: |
+          git pull --all; for remote in `git branch -r | grep -v main | grep -v \>`; do git branch --track ${remote#origin/} $remote; done
+        shell: bash
+
+      - name: Install Helm
+        id: helm
+        uses: azure/setup-helm@5119fcb9089d432beecbf79bb2c7915207344b78 # v3.5
         with:
-          gpg_keyring_base64: ${{ inputs.GPG_KEYRING_BASE64 }}
-          gpg_passphrase: ${{ inputs.GPG_PASSPHRASE }}
-          gpg_key: ${{ inputs.GPG_KEY }}
-          gh_token: ${{ inputs.gh_token }}
-          gh_handle: ${{ inputs.gh_handle }}
-          chart: ${{ inputs.chart }}
-          chart_version: ${{ inputs.chart_version }}
-          image_repository: ${{ inputs.image_repository }}
-          image_tag: ${{ inputs.image_tag }}
-          image_digest: ${{ inputs.image_digest }}
+          version: "3.11.1"
+
+      - name: Update Values and Chart
+        if: "${{ inputs.chart_version != '' }}"
+        id: chart
+        uses: fjogeleit/yaml-update-action@d98ee6a10a971effea75480e3f315e4dacc89a23 # main
+        with:
+          commitChange: false
+          changes: |
+            {
+              "${{ inputs.chart }}/values.yaml":
+              {
+                "image.repository": "${{ inputs.image_repository }}",
+                "image.tag": "${{ inputs.image_tag }}",
+                "image.sha": "${{ inputs.image_digest }}"
+              },
+              "${{ inputs.chart }}/Chart.yaml":
+              {
+                "version": "${{ inputs.chart_version }}",
+                "appVersion": "${{ inputs.chart_version }}"
+              }
+            }
+
+      - name: Use Node.js
+        if: "${{ inputs.chart_version == '' }}"
+        id: node
+        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+        with:
+          node-version: "18.x"
+
+      - name: Update Main Chart
+        if: "${{ inputs.chart_version == '' }}"
+        id: main_chart
+        run: |
+          sleep 5m
+          yarn install
+          git pull
+          node main.js
+          git add ${{ inputs.chart }}/Chart.yaml
+          git commit -m "Generate Main Chart"
+          git push
+        shell: bash
+
+      - name: Run chart-releaser
+        id: cr
+        run: |
+          set -x
+          gh_token="${{ secrets.gh_token }}"
+          gpg_keyring_base64="${{ secrets.GPG_KEYRING_BASE64 }}"
+          gpg_passphrase="${{ secrets.gpg_passphrase }}"
+          gpg_keyring="/tmp/secring.gpg"
+          gpg_passphrase_file="/tmp/passphrase"
+
+          # Create keyring and passphrase file
+          base64 -d <<< "${gpg_keyring_base64}" > "${gpg_keyring}"
+          echo "${gpg_passphrase}" > "${gpg_passphrase_file}"
+
+          # Loop until all of the dependencies are downloaded
+          set +o pipefail +e
+          helm dep update "${{ inputs.chart }}"
+          while [ $? -ne 0 ]
+          do
+            sleep 1m
+            helm dep update "${{ inputs.chart }}"
+          done
+          set -o pipefail -e
+
+          # Helm Package with signing
+          tag=$(basename $(helm package "${{ inputs.chart }}" -u --key "${{ secrets.gpg_key }}" --sign --keyring "${gpg_keyring}" --passphrase-file "${gpg_passphrase_file}" | cut -d: -f2) .tgz)
+          echo "Created ${tag}"
+
+          # Clean up GPG and intermediate tgz files
+          rm -rf "${gpg_keyring}" "${gpg_passphrase_file}" "${{ inputs.chart }}/charts"
+
+          # Rename the signing .prov to .asc for OpenSSF Scorecard
+          ls *.prov | xargs -I {} sh -c 'cp $1 `basename $1 .prov`.asc' - {}
+
+          # Remove existing tags and releases
+          gh release delete "${tag}" --cleanup-tag -y || true
+
+          # Create new commit and release
+          git tag -f "${tag}"
+          git push -f --tags
+          release=$(gh release create "${tag}" ${tag}.* --title "${tag}" --notes "${{ inputs.notes }}" | sed 's#/tag/#/download/#')
+
+          # Copy the release .tgz for indexing
+          mkdir -p /tmp/charts
+          mv ${tag}.tgz /tmp/charts
+          mv ${tag}.tgz.asc /tmp/charts
+          mv ${tag}.tgz.prov /tmp/charts
+
+          # Get the existing index.yaml for merging
+          git show gh-pages:index.yaml > /tmp/index.yaml
+
+          # Index the new release into the index.yaml
+          helm repo index /tmp/charts --merge /tmp/index.yaml --url "${release}"
+
+          # Save the new index.yaml
+          mv /tmp/charts/index.yaml /tmp
+
+          # Cleanup any working files and switch to the gh-pages branch
+          git reset --hard
+          git clean -x -f -d
+          git checkout gh-pages
+          git pull
+
+          # Put the new index.yaml in place and commit/push it
+          mv /tmp/index.yaml index.yaml
+          git add index.yaml
+          git commit -m "Generate Charts ${tag}"
+          git push -f
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.gh_token }}
 
       - name: Trigger Rebuild of Main Chart
         uses: benc-uk/workflow-dispatch@798e70c97009500150087d30d9f11c5444830385 # v1.2.2
         with:
           workflow: generate-main-chart.yml
           repo: ortelius/ortelius-charts
-          token: ${{ inputs.gh_token }}
+          token: ${{ secrets.gh_token }}
+          
