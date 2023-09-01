@@ -80,7 +80,7 @@ jobs:
       - name: Update Values and Chart
         if: "${{ inputs.chart_version != '' }}"
         id: chart
-        uses: fjogeleit/yaml-update-action@d98ee6a10a971effea75480e3f315e4dacc89a23 # main
+        uses: fjogeleit/yaml-update-action@ce08f5c158d28267b942d9ee71a62628f5d68644 # main
         with:
           commitChange: false
           changes: |
