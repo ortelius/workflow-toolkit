@@ -39,7 +39,7 @@ on:
         required: true
       gh_token:
         required: true
-      
+
 jobs:
   helm:
     runs-on: ubuntu-latest
@@ -191,9 +191,9 @@ jobs:
           GH_TOKEN: ${{ secrets.gh_token }}
 
       - name: Trigger Rebuild of Main Chart
+        if: "${{ inputs.chart_version != '' }}"
         uses: benc-uk/workflow-dispatch@798e70c97009500150087d30d9f11c5444830385 # v1.2.2
         with:
           workflow: generate-main-chart.yml
           repo: ortelius/ortelius-charts
           token: ${{ secrets.gh_token }}
-          

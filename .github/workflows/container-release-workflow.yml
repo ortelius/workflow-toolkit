@@ -23,7 +23,7 @@ on:
         required: true
       QUAY_PASSWORD:
         required: true
-    
+
     outputs:
       digest:
         description: "Digest"
@@ -69,4 +69,3 @@ jobs:
         uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825 # v4.1.1
         with:
           tags: ${{ inputs.image_repo_tag }}
-          
