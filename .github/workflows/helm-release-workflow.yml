@@ -19,17 +19,21 @@ on:
         required: true
         type: string
       chart_version:
-        required: true
+        required: false
         type: string
       image_repository:
-        required: true
+        required: false
         type: string
       image_tag:
-        required: true
+        required: false
         type: string
       image_digest:
-        required: true
+        required: false
         type: string
+      notes:
+        required: false
+        type: string
+        default: ""
     secrets:
       GPG_KEYRING_BASE64:
         required: true
