@@ -51,7 +51,7 @@ jobs:
     permissions:
       contents: write
 
-    if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+    if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_ref == 'refs/heads/main' }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09 # v2.5.1
