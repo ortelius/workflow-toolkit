@@ -62,6 +62,8 @@ jobs:
         with:
           push: true
           tags: ${{ inputs.image_repo_tag }}
+          sbom: true
+          provenance: true
 
       - name: Build Docker Image
         if: ${{ !(inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main') }}
