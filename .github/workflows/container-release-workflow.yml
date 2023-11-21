@@ -75,7 +75,7 @@ jobs:
       - name: Sign the images
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
         run: |
-          cosign sign ${{ inputs.image_repo_tag }}
+          cosign sign -y ${{ inputs.image_repo_tag }}
         env:
           COSIGN_EXPERIMENTAL: 1
 
