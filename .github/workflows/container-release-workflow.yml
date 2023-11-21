@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      digest: ${{ steps.release.outputs.digest }}
+      digest: ${{ steps.build.outputs.digest }}
 
     steps:
       - name: Harden Runner
@@ -45,6 +45,9 @@ jobs:
       - name: Checkout
         id: checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.2.0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -68,6 +71,19 @@ jobs:
           push: true
           tags: ${{ inputs.image_repo_tag }}
           attests: type=provenance,type=sbom
+
+      - name: Sign the images
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+        run: |
+          cosign sign ${{ inputs.image_repo_tag }}
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
+      - name: Verify the pushed tags
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+        run: cosign verify ${{ inputs.image_repo_tag }}
+        env:
+          COSIGN_EXPERIMENTAL: 1
 
       - name: Build Docker Image
         if: ${{ !(inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main') }}
