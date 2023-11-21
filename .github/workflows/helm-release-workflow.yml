@@ -54,7 +54,7 @@ jobs:
     if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_ref == 'refs/heads/main' }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423 # v2.6.0
+        uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
@@ -84,7 +84,7 @@ jobs:
       - name: Update Values and Chart
         if: "${{ inputs.chart_version != '' }}"
         id: chart
-        uses: fjogeleit/yaml-update-action@ce08f5c158d28267b942d9ee71a62628f5d68644 # main
+        uses: fjogeleit/yaml-update-action@8093e03c41dd849962ce2d1ea5aafa2471f3f14b # main
         with:
           commitChange: false
           changes: |
