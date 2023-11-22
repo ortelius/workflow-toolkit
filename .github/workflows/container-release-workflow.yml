@@ -23,6 +23,12 @@ on:
         required: true
       QUAY_PASSWORD:
         required: true
+      COSIGN_PRIVATE_KEY:
+        required: true
+      COSIGN_PUBLIC_KEY:
+        required: true
+      COSIGN_PASSWORD:
+        required: true
 
     outputs:
       digest:
@@ -75,15 +81,17 @@ jobs:
       - name: Sign the images
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
         run: |
-          cosign sign -y ${{ inputs.image_repo_tag }}
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ inputs.image_repo_tag }}@${{ steps.build.outputs.digest }}
         env:
-          COSIGN_EXPERIMENTAL: 1
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
 
       - name: Verify the pushed tags
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
-        run: cosign verify ${{ inputs.image_repo_tag }}
+        run: cosign verify --key env://COSIGN_PUBLIC_KEY ${{ inputs.image_repo_tag }}@${{ steps.build.outputs.digest }} | jq "."
         env:
-          COSIGN_EXPERIMENTAL: 1
+          COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
 
       - name: Build Docker Image
         if: ${{ !(inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main') }}
