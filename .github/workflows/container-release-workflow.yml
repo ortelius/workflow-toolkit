@@ -79,6 +79,13 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: 1
 
+      - name: Verify the pushed tags
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+        run: |
+          cosign verify ${{ inputs.image_repo_tag }}@${{ steps.build.outputs.digest }} --certificate-identity-regexp 'https://github\.com/ortelius/workflow-toolkit/\.github/workflows/.+' --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' | jq "."
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
       - name: Build Docker Image
         if: ${{ !(inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main') }}
         id: build_only
