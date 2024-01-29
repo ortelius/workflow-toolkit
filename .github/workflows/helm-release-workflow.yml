@@ -84,7 +84,7 @@ jobs:
       - name: Update Values and Chart
         if: "${{ inputs.chart_version != '' }}"
         id: chart
-        uses: fjogeleit/yaml-update-action@8093e03c41dd849962ce2d1ea5aafa2471f3f14b # main
+        uses: fjogeleit/yaml-update-action@b8cfe7a78f7ce57010918804c15ebcee8ab6b004 # main
         with:
           commitChange: false
           changes: |
@@ -105,7 +105,7 @@ jobs:
       - name: Use Node.js
         if: "${{ inputs.chart_version == '' }}"
         id: node
-        uses: actions/setup-node@8f152de45cc393bb48ce5d89d36b731f54556e65 # v4.0.0
+        uses: actions/setup-node@b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8 # v4.0.1
         with:
           node-version: "18.x"
 

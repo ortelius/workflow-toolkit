@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Generate SBOM
-        uses: anchore/sbom-action@fd74a6fb98a204a1ad35bbfae0122c1a302ff88b # v0.15.0
+        uses: anchore/sbom-action@c6aed38a4323b393d05372c58a74c39ae8386d02 # v0.15.6
         id: sbom
         with:
           format: cyclonedx-json
