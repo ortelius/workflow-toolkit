@@ -66,7 +66,7 @@ jobs:
           version: v0.11.2
 
       - name: Pull SBOM from Image
-        run:
+        run: |
           docker buildx imagetools inspect ${{ inputs.image_repo_tag }} --format "{{ json .SBOM.SPDX }}" > /tmp/spdx.json
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
           syft convert /tmp/spdx.json  -o cyclonedx-json=/tmp/cyclonedx.json
