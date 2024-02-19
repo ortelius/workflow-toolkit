@@ -194,8 +194,8 @@ jobs:
 
       - name: Trigger Rebuild of Main Chart
         if: "${{ inputs.chart_version != '' }}"
-        uses: benc-uk/workflow-dispatch@798e70c97009500150087d30d9f11c5444830385 # v1.2.2
+        uses: peter-evans/repository-dispatch@v3.0.0
         with:
-          workflow: generate-main-chart.yml
-          repo: ortelius/ortelius-charts
+          event-type: generate-main-chart
+          repository: ortelius/ortelius-charts
           token: ${{ secrets.gh_token }}
