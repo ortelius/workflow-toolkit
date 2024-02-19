@@ -36,14 +36,14 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@f3d98514b056d8c71a3552e8328c225bc7f6f353 # master
+        uses: aquasecurity/trivy-action@1f6384b6ceecbbc6673526f865b818a2a06b07c9 # master
         with:
           image-ref: ${{ inputs.image_repo_tag }}
           format: "sarif"
           output: "trivy-results.sarif"
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@b7bf0a3ed3ecfa44160715d7c442788f65f0f923 # v3.23.2
+        uses: github/codeql-action/upload-sarif@379614612a29c9e28f31f39a59013eb8012a51f0 # v3.24.3
         if: always()
         with:
           sarif_file: "trivy-results.sarif"
