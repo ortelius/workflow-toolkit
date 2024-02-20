@@ -47,7 +47,10 @@ on:
         required: true
       gh_token:
         required: true
-
+      DHPASS:
+        required: true
+      DHUSER:
+        required: true
 jobs:
   helm:
     runs-on: ubuntu-latest
