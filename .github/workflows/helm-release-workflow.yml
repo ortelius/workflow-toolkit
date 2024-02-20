@@ -15,6 +15,10 @@ on:
       gh_handle:
         required: true
         type: string
+      dhurl:
+        required: false
+        type: string
+        default: ""
       chart:
         required: true
         type: string
