@@ -110,6 +110,10 @@ jobs:
       - name: Update Main Chart
         if: "${{ inputs.chart_version == '' }}"
         id: main_chart
+        env:
+          DHURL: ${{ inputs.dhurl }}
+          DHUSER: ${{ secrets.DHUSER }}
+          DHPASS: ${{ secrets.DHPASS }}
         run: |
           sleep 5m
           yarn install
@@ -118,6 +122,12 @@ jobs:
           git add ${{ inputs.chart }}/Chart.yaml
           git commit -m "Generate Main Chart"
           git push
+          # Add a check for deploy.json existence
+          if [ -f "deploy.json" ]; then
+            dh deploy --logdeployment --deploydata deploy.json --appautoinc N
+          else
+            echo "deploy.json does not exist. Skipping dh command."
+          fi
         shell: bash
 
       - name: Run chart-releaser
