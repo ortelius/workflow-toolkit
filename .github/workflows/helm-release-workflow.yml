@@ -48,9 +48,9 @@ on:
       gh_token:
         required: true
       DHPASS:
-        required: true
+        required: false
       DHUSER:
-        required: true
+        required: false
 jobs:
   helm:
     runs-on: ubuntu-latest
