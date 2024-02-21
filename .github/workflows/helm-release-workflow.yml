@@ -51,6 +51,7 @@ on:
         required: false
       DHUSER:
         required: false
+
 jobs:
   helm:
     runs-on: ubuntu-latest
@@ -210,8 +211,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.gh_token }}
 
-      - name: Trigger Rebuild of Main Chart
-        if: "${{ inputs.chart_version != '' }}"
+      - name: Trigger Rebuild of ortelius/scec-charts
+        if: "contains(github.repository, 'scec-')"
+        uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 # v3.0.0
+        with:
+          event-type: generate-main-chart
+          repository: ortelius/scec-charts
+          token: ${{ secrets.gh_token }}
+
+      - name: Trigger Rebuild of ortelius/ortelius-charts
+        if: "!(contains(github.repository, 'scec-'))"
         uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 # v3.0.0
         with:
           event-type: generate-main-chart
