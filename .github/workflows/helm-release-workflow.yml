@@ -169,7 +169,7 @@ jobs:
           rm -rf "${gpg_keyring}" "${gpg_passphrase_file}" "${{ inputs.chart }}/charts"
 
           # Rename the signing .prov to .asc for OpenSSF Scorecard
-          find . -maxdepth 1 -type f -name "*.prov" -exec cp {} "$(basename {} .prov).asc" \;
+          find . -maxdepth 1 -type f -name '*.prov' -exec sh -c 'cp "$1" "$(basename "$1" .prov).asc"' _ {} \;
 
           # Remove existing tags and releases
           gh release delete "${tag}" --cleanup-tag -y || true
