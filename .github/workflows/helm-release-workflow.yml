@@ -177,7 +177,7 @@ jobs:
           # Create a new commit and release
           git tag -f "${tag}"
           git push -f --tags
-          release=$(gh release create "${tag}" "${tag}.*" --title "${tag}" --notes "${{ inputs.notes }}" | sed 's#/tag/#/download/#')
+          release=$(gh release create "${tag}" "${tag}".* --title "${tag}" --notes "${{ inputs.notes }}" | sed 's#/tag/#/download/#')
 
           # Copy the release .tgz for indexing
           mkdir -p /tmp/charts
