@@ -80,7 +80,7 @@ jobs:
       - name: Get all branches
         id: branches
         run: |
-          git pull --all; for remote in `git branch -r | grep -v main | grep -v \>`; do git branch --track ${remote#origin/} $remote; done
+          git pull --all; for remote in $(git branch -r | grep -v main | grep -v \>); do git branch --track "${remote#origin/}" "$remote"; done
         shell: bash
 
       - name: Install Helm
@@ -127,7 +127,7 @@ jobs:
           yarn install
           git pull
           node main.js
-          git add ${{ inputs.chart }}/Chart.yaml
+          git add "${{ inputs.chart }}/Chart.yaml"
           git commit -m "Generate Main Chart"
           git push
           # Add a check for deploy.json existence
@@ -143,49 +143,47 @@ jobs:
         id: cr
         run: |
           set -x
-          gh_token="${{ secrets.gh_token }}"
+
           gpg_keyring_base64="${{ secrets.GPG_KEYRING_BASE64 }}"
           gpg_passphrase="${{ secrets.gpg_passphrase }}"
           gpg_keyring="/tmp/secring.gpg"
           gpg_passphrase_file="/tmp/passphrase"
 
           # Create keyring and passphrase file
-          base64 -d <<< "${gpg_keyring_base64}" > "${gpg_keyring}"
+          echo "${gpg_keyring_base64}" | base64 -d > "${gpg_keyring}"
           echo "${gpg_passphrase}" > "${gpg_passphrase_file}"
 
-          # Loop until all of the dependencies are downloaded
           set +o pipefail +e
-          helm dep update "${{ inputs.chart }}"
-          while [ $? -ne 0 ]
+          # Loop until all of the dependencies are downloaded
+          while ! helm dep update "${{ inputs.chart }}"
           do
             sleep 1m
-            helm dep update "${{ inputs.chart }}"
           done
           set -o pipefail -e
 
           # Helm Package with signing
-          tag=$(basename $(helm package "${{ inputs.chart }}" -u --key "${{ secrets.gpg_key }}" --sign --keyring "${gpg_keyring}" --passphrase-file "${gpg_passphrase_file}" | cut -d: -f2) .tgz)
+          tag=$(basename "$(helm package "${{ inputs.chart }}" -u --key "${{ secrets.gpg_key }}" --sign --keyring "${gpg_keyring}" --passphrase-file "${gpg_passphrase_file}" | cut -d: -f2)" .tgz)
           echo "Created ${tag}"
 
           # Clean up GPG and intermediate tgz files
           rm -rf "${gpg_keyring}" "${gpg_passphrase_file}" "${{ inputs.chart }}/charts"
 
           # Rename the signing .prov to .asc for OpenSSF Scorecard
-          ls *.prov | xargs -I {} sh -c 'cp $1 `basename $1 .prov`.asc' - {}
+          find . -maxdepth 1 -type f -name "*.prov" -exec cp {} "$(basename {} .prov).asc" \;
 
           # Remove existing tags and releases
           gh release delete "${tag}" --cleanup-tag -y || true
 
-          # Create new commit and release
+          # Create a new commit and release
           git tag -f "${tag}"
           git push -f --tags
-          release=$(gh release create "${tag}" ${tag}.* --title "${tag}" --notes "${{ inputs.notes }}" | sed 's#/tag/#/download/#')
+          release=$(gh release create "${tag}" "${tag}.*" --title "${tag}" --notes "${{ inputs.notes }}" | sed 's#/tag/#/download/#')
 
           # Copy the release .tgz for indexing
           mkdir -p /tmp/charts
-          mv ${tag}.tgz /tmp/charts
-          mv ${tag}.tgz.asc /tmp/charts
-          mv ${tag}.tgz.prov /tmp/charts
+          mv "${tag}.tgz" /tmp/charts
+          mv "${tag}.tgz.asc" /tmp/charts
+          mv "${tag}.tgz.prov" /tmp/charts
 
           # Get the existing index.yaml for merging
           git show gh-pages:index.yaml > /tmp/index.yaml

@@ -67,7 +67,7 @@ jobs:
 
       - name: Pull SBOM from Image
         run: |
-          docker buildx imagetools inspect ${{ inputs.image_repo_tag }} --format "{{ json .SBOM.SPDX }}" > /tmp/spdx.json
+          docker buildx imagetools inspect "${{ inputs.image_repo_tag }}" --format "{{ json .SBOM.SPDX }}" > /tmp/spdx.json
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
           syft convert /tmp/spdx.json  -o cyclonedx-json=/tmp/cyclonedx.json
 
@@ -79,14 +79,12 @@ jobs:
           DHPASS: ${{ secrets.DHPASS }}
           GIT_BRANCH: ${{ inputs.branch }}
           CHART_VERSION: ${{ inputs.chart_version }}
-          CHART: ${{ inputs.chart_name }}
           COMPNAME: ${{ inputs.compname }}
           DIGEST: ${{ inputs.digest }}
           IMAGE_REPO: ${{ inputs.image_repository }}
           IMAGE_REPO_TAG: ${{ inputs.image_repo_tag }}
           IMAGE_TAG: ${{ inputs.image_tag }}
           IMAGE_VERSION: ${{ inputs.image_version }}
-          SHORT_SHA: ${{ inputs.short_sha }}
         run: |
           pip install ortelius-cli
           dh updatecomp --rsp component.toml --deppkg cyclonedx@/tmp/cyclonedx.json
