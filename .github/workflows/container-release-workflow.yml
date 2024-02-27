@@ -71,6 +71,7 @@ jobs:
           push: true
           tags: ${{ inputs.image_repo_tag }}
           attests: type=provenance,type=sbom
+        timeout-minutes: 45
 
       - name: Sign the images
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
