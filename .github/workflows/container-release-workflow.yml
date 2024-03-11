@@ -42,6 +42,9 @@ jobs:
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after a couple of runs
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Checkout
         id: checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -70,6 +73,7 @@ jobs:
         with:
           push: true
           tags: ${{ inputs.image_repo_tag }}
+          platforms: linux/amd64,linux/arm64
           attests: type=provenance,type=sbom
         timeout-minutes: 45
 
