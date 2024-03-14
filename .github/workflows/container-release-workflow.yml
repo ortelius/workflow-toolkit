@@ -75,7 +75,7 @@ jobs:
           tags: ${{ inputs.image_repo_tag }}
           platforms: linux/amd64,linux/arm64
           attests: type=provenance,type=sbom
-        timeout-minutes: 45
+        timeout-minutes: 100
 
       - name: Sign the images
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
