@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@d710430a6722f083d3b36b8339ff66b32f22ee55 # master
+        uses: aquasecurity/trivy-action@0f287db5d30aced70dbc7f7d6bb5c8b919114b4c # master
         with:
           image-ref: ${{ inputs.image_repo_tag }}
           format: "sarif"
