@@ -89,6 +89,7 @@ jobs:
           IMAGE_REPO_TAG: ${{ inputs.image_repo_tag }}
           IMAGE_TAG: ${{ inputs.image_tag }}
           IMAGE_VERSION: ${{ inputs.image_version }}
+          GIT_TRIGGER: ${{ github.event_name }}
         run: |
           pip install ortelius-cli
           dh updatecomp --rsp component.toml --deppkg cyclonedx@/tmp/cyclonedx.json
