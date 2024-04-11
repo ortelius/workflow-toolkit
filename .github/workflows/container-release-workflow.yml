@@ -66,28 +66,53 @@ jobs:
           username: ${{ secrets.QUAY_USERID }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
-      - name: Build and Push Docker Image
+      - name: Build and Push Docker Image AMD
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
         id: build
         uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
         with:
           push: true
           tags: ${{ inputs.image_repo_tag }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           attests: type=provenance,type=sbom
         timeout-minutes: 100
 
-      - name: Sign the images
+      - name: Sign the images AMD
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
         run: |
           cosign sign --yes ${{ inputs.image_repo_tag }}@${{ steps.build.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: 1
 
-      - name: Verify the pushed tags
+      - name: Verify the pushed tags AMD
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
         run: |
           cosign verify ${{ inputs.image_repo_tag }}@${{ steps.build.outputs.digest }} --certificate-identity-regexp 'https://github\.com/ortelius/workflow-toolkit/\.github/workflows/.+' --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' | jq "."
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
+      - name: Build and Push Docker Image ARM
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+        id: build_arm
+        uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
+        with:
+          push: true
+          tags: ${{ inputs.image_repo_tag }}
+          platforms: linux/arm64
+          attests: type=provenance,type=sbom
+        timeout-minutes: 100
+
+      - name: Sign the images ARM
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+        run: |
+          cosign sign --yes ${{ inputs.image_repo_tag }}@${{ steps.build_arm.outputs.digest }}
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
+      - name: Verify the pushed tags ARM
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+        run: |
+          cosign verify ${{ inputs.image_repo_tag }}@${{ steps.build_arm.outputs.digest }} --certificate-identity-regexp 'https://github\.com/ortelius/workflow-toolkit/\.github/workflows/.+' --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' | jq "."
         env:
           COSIGN_EXPERIMENTAL: 1
 
