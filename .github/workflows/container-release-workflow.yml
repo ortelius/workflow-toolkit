@@ -18,6 +18,10 @@ on:
       image_repo_tag:
         required: true
         type: string
+      loaddata:
+        required: false
+        type: boolean
+        default: false
     secrets:
       QUAY_USERID:
         required: true
@@ -65,6 +69,23 @@ jobs:
           registry: ${{ inputs.registry }}
           username: ${{ secrets.QUAY_USERID }}
           password: ${{ secrets.QUAY_PASSWORD }}
+
+      - name: setup python
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.in
+
+      - name: execute py script
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata }}
+        run: |
+          python main.py --loaddata
 
       - name: Build and Push Docker Image
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
