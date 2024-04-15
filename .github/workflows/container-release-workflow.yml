@@ -86,7 +86,6 @@ jobs:
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata }}
         run: |
           python main.py --loaddata
-          find / -name mitre.joblib -print
 
       - name: Build and Push Docker Image
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
