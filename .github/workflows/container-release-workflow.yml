@@ -86,25 +86,13 @@ jobs:
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata }}
         run: |
           python main.py --loaddata
-          find / -name mitre.joblib -print
 
       - name: Build and Push Docker Image
-        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata }}
-        id: build_context
-        uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
-        with:
-          push: true
-          context: .
-          tags: ${{ inputs.image_repo_tag }}
-          platforms: linux/amd64,linux/arm64
-          attests: type=provenance,type=sbom
-        timeout-minutes: 100
-
-      - name: Build and Push Docker Image
-        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && !inputs.loaddata }}
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
         id: build
         uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
         with:
+          context: .
           push: true
           tags: ${{ inputs.image_repo_tag }}
           platforms: linux/amd64,linux/arm64
