@@ -22,6 +22,10 @@ on:
         required: false
         type: boolean
         default: false
+      gh_handle:
+        required: false
+        type: string
+        default: ""
     secrets:
       QUAY_USERID:
         required: true
@@ -120,8 +124,10 @@ jobs:
           GH_TOKEN: ${{ secrets.gh_token }}
         run: |
           if [ -f "main.py" ] && grep -q '\[Discord\]' README.md; then
+            git config user.name "${{ inputs.gh_handle }}"
+            git config user.email "${{ inputs.gh_handle }}@users.noreply.github.com"
             npm install -g openapi-to-md
-            docker run --name swagger -p 8080:8080 --rm -d quay.io/ortelius/ms-dep-pkg-r:main-v10.0.705-g5a746f
+            docker run --name swagger -p 8080:8080 --rm -d ${{ inputs.image_repo_tag }}
             sleep 5
             wget http://localhost:8080/openapi.json -O openapi.json
             docker stop swagger
