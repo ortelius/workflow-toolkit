@@ -27,7 +27,8 @@ on:
         required: true
       QUAY_PASSWORD:
         required: true
-
+      gh_token:
+        required: false
     outputs:
       digest:
         description: "Digest"
@@ -112,6 +113,24 @@ jobs:
           cosign verify ${{ inputs.image_repo_tag }}@${{ steps.build.outputs.digest }} --certificate-identity-regexp 'https://github\.com/ortelius/workflow-toolkit/\.github/workflows/.+' --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' | jq "."
         env:
           COSIGN_EXPERIMENTAL: 1
+
+      - name: Swagger
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && env.GH_TOKEN != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.gh_token }}
+        run: |
+          if [ -f "main.py" ] && grep -q '\[Discord\]' README.md; then
+            npm install -g openapi-to-md
+            docker run --name swagger -p 8080:8080 --rm -d quay.io/ortelius/ms-dep-pkg-r:main-v10.0.705-g5a746f
+            sleep 5
+            wget http://localhost:8080/openapi.json -O openapi.json
+            docker stop swagger
+            sed -i.bak "/\[Discord\]/q" README.md && openapi-to-md openapi.json | tail -n +2 >> README.md && rm README.md.bak
+            git pull
+            git add README.md
+            git commit -m "update readme with latest swagger"
+            git push
+          fi
 
       - name: Build Docker Image
         if: ${{ !(inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main') }}
