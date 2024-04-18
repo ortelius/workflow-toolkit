@@ -133,7 +133,7 @@ jobs:
             docker stop swagger
             sed -i.bak "/\[Discord\]/q" README.md && openapi-to-md openapi.json | tail -n +2 >> README.md && rm README.md.bak
             git pull
-            git add README.md
+            git add .
             git commit -m "update readme with latest swagger"
             git push
           elif [ -f "main.go" ] && grep -q '\[Discord\]' README.md; then
@@ -146,7 +146,7 @@ jobs:
             rm docs/swagger.yaml
             openapi-to-md swagger.json > README.md
             git pull
-            git add README.md
+            git add .
             git commit -m "update readme with latest swagger"
             git push
           fi
