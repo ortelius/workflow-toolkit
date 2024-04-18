@@ -42,9 +42,6 @@ jobs:
   release:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
-
     outputs:
       digest: ${{ steps.build.outputs.digest }}
 
