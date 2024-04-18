@@ -127,7 +127,7 @@ jobs:
             git config user.name "${{ inputs.gh_handle }}"
             git config user.email "${{ inputs.gh_handle }}@users.noreply.github.com"
             npm install -g openapi-to-md
-            docker run --name swagger -p 8080:8080 --rm -d ${{ inputs.image_repo_tag }}
+            docker run --name swagger -p 8080:8080 --rm -d "${{ inputs.image_repo_tag }}"
             sleep 5
             wget http://localhost:8080/openapi.json -O openapi.json
             docker stop swagger
@@ -136,7 +136,21 @@ jobs:
             git add README.md
             git commit -m "update readme with latest swagger"
             git push
+          elif [ -f "main.go" ] && grep -q '\[Discord\]' README.md; then
+            git config user.name "${{ inputs.gh_handle }}"
+            git config user.email "${{ inputs.gh_handle }}@users.noreply.github.com"
+            npm install -g openapi-to-md
+            go install github.com/swaggo/swag/cmd/swag@latest
+            "$HOME/go/bin/swag" init
+            mv docs/swagger.json .
+            rm docs/swagger.yaml
+            openapi-to-md swagger.json > README.md
+            git pull
+            git add README.md
+            git commit -m "update readme with latest swagger"
+            git push
           fi
+        shell: bash
 
       - name: Build Docker Image
         if: ${{ !(inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main') }}
