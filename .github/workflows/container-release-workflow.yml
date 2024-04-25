@@ -76,6 +76,8 @@ jobs:
           password: ${{ secrets.QUAY_PASSWORD }}
 
       - uses: actions/cache@v4
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata }}
+        name: Cache mitre.joblib
         id: cache
         with:
           path: |
@@ -89,15 +91,24 @@ jobs:
           python-version: 3.11
 
       - name: Install dependencies
-        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata && steps.cache.outputs.cache-hit != 'true'  }}
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata && steps.cache.outputs.cache-hit != 'true' }}
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.in
 
       - name: execute py script
-        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata && steps.cache.outputs.cache-hit != 'true'  }}
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata && steps.cache.outputs.cache-hit != 'true' }}
         run: |
           python main.py --loaddata
+
+      - name: Save Cache mitre.joblib
+        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata && steps.cache.outputs.cache-hit != 'true' }}
+        id: cache-save
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            mitre.joblib
+          key: ${{ runner.os }}-${{ hashFiles('*.json') }}
 
       - name: Build and Push Docker Image
         if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
