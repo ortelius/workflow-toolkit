@@ -132,7 +132,10 @@ jobs:
           git push
           # Add a check for deploy.json existence
           if [ -f "deploy.json" ]; then
-            pip3 install ortelius-cli
+            sudo apt update
+            sudo apt install pipx
+            pipx ensurepath
+            pipx install ortelius-cli
             dh deploy --logdeployment --deploydata deploy.json --appautoinc N
           else
             echo "deploy.json does not exist. Skipping dh command."
