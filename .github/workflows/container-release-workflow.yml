@@ -148,11 +148,9 @@ jobs:
           registry: ${{ inputs.registry }}
           username: ${{ secrets.QUAY_USERID }}
           password: ${{ secrets.QUAY_PASSWORD }}
-
-      # NEW: This step derives the repository name for use in manifest creation
       - name: Determine Repository Name
         run: |
-          IMAGE_REPO="${{ inputs.image_repo_tag }%:*}"
+          IMAGE_REPO=$(echo "${{ inputs.image_repo_tag }}" | awk -F: '{print $1}')
           echo "IMAGE_REPO=${IMAGE_REPO}" >> $GITHUB_ENV
 
       - name: Create and Push Manifest
