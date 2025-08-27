@@ -35,29 +35,97 @@ on:
         required: false
     outputs:
       digest:
-        description: "Digest"
+        description: "The digest of the final multi-platform manifest."
         value: ${{ jobs.release.outputs.digest }}
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-
-    outputs:
-      digest: ${{ steps.build.outputs.digest }}
+  build:
+    # This job runs two parallel builds using a matrix strategy on native runners.
+    if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-latest-arm64
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    env:
+      ARCH: ${{ matrix.arch }}
 
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.7.1
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after a couple of runs
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3 # v3
-        with:
-          platforms: linux/amd64,linux/arm64
+          egress-policy: audit
 
       - name: Checkout
-        id: checkout
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3
+        with:
+          version: v0.14.0
+
+      - name: Login to Quay
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ secrets.QUAY_USERID }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+
+      - name: Cache Data File
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4
+        id: cache
+        with:
+          path: |
+            mitre.joblib
+          key: ${{ runner.os }}-${{ hashFiles('*.json') }}
+
+      - name: Setup Python
+        if: ${{ inputs.loaddata && steps.cache.outputs.cache-hit != 'true' }}
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5
+        with:
+          python-version: 3.11
+
+      - name: Install Python Dependencies
+        if: ${{ inputs.loaddata && steps.cache.outputs.cache-hit != 'true' }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.in
+
+      - name: Generate Data File
+        if: ${{ inputs.loaddata && steps.cache.outputs.cache-hit != 'true' }}
+        run: |
+          python main.py --loaddata
+
+      - name: Build and Push Docker Image for ${{ env.ARCH }}
+        uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
+        with:
+          context: .
+          push: true
+          tags: ${{ inputs.image_repo_tag }}-${{ env.ARCH }}
+          platforms: ${{ matrix.platform }}
+          attests: type=provenance,type=sbom
+        timeout-minutes: 100
+
+  release:
+    # This job waits for all matrix builds to succeed before creating the manifest.
+    needs: build
+    if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.manifest.outputs.digest }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.7.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
         uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
 
       - name: Install Cosign
@@ -69,66 +137,35 @@ jobs:
           version: v0.14.0
 
       - name: Login to Quay
-        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
-        id: login
         uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
         with:
           registry: ${{ inputs.registry }}
           username: ${{ secrets.QUAY_USERID }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
-      - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4
-        id: cache
-        with:
-          path: |
-            mitre.joblib
-          key: ${{ runner.os }}-${{ hashFiles('*.json') }}
-
-      - name: setup python
-        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata && steps.cache.outputs.cache-hit != 'true' }}
-        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5
-        with:
-          python-version: 3.11
-
-      - name: Install dependencies
-        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata && steps.cache.outputs.cache-hit != 'true'  }}
+      - name: Create and Push Manifest
+        id: manifest
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.in
-
-      - name: execute py script
-        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && inputs.loaddata && steps.cache.outputs.cache-hit != 'true'  }}
-        run: |
-          python main.py --loaddata
-
-      - name: Build and Push Docker Image
-        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
-        id: build
-        uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
-        with:
-          context: .
-          push: true
-          tags: ${{ inputs.image_repo_tag }}
-          platforms: linux/amd64,linux/arm64
-          attests: type=provenance,type=sbom
-        timeout-minutes: 100
+          docker manifest create ${{ inputs.image_repo_tag }} \
+            --amend ${{ inputs.image_repo_tag }}-amd64 \
+            --amend ${{ inputs.image_repo_tag }}-arm64
+          MANIFEST_DIGEST=$(docker manifest push ${{ inputs.image_repo_tag }})
+          echo "digest=${MANIFEST_DIGEST}" >> $GITHUB_OUTPUT
 
       - name: Sign the images
-        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
         run: |
-          cosign sign --yes ${{ inputs.image_repo_tag }}@${{ steps.build.outputs.digest }}
+          cosign sign --yes ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: 1
 
       - name: Verify the pushed tags
-        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
         run: |
-          cosign verify ${{ inputs.image_repo_tag }}@${{ steps.build.outputs.digest }} --certificate-identity-regexp 'https://github\.com/ortelius/workflow-toolkit/\.github/workflows/.+' --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' | jq "."
+          cosign verify ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }} --certificate-identity-regexp 'https://github\.com/ortelius/workflow-toolkit/\.github/workflows/.+' --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' | jq "."
         env:
           COSIGN_EXPERIMENTAL: 1
 
       - name: Swagger
-        if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' && env.GH_TOKEN != '' }}
+        if: ${{ env.GH_TOKEN != '' }}
         env:
           GH_TOKEN: ${{ secrets.gh_token }}
         run: |
@@ -161,9 +198,20 @@ jobs:
           fi
         shell: bash
 
+  build_only:
+    # This job handles the "else" case for builds that are not a push to main.
+    if: ${{ !(inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3
+        with:
+          version: v0.14.0
+
       - name: Build Docker Image
-        if: ${{ !(inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main') }}
-        id: build_only
         uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
         with:
           tags: ${{ inputs.image_repo_tag }}
