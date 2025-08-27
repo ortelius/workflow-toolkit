@@ -116,7 +116,6 @@ jobs:
           push: true
           tags: ${{ env.TEMP_TAG }}
           platforms: ${{ matrix.platform }}
-          attests: type=provenance,type=sbom
         timeout-minutes: 100
 
   release:
@@ -136,12 +135,20 @@ jobs:
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@675a03621453a3915155b4109403362117f7d206 # v0.26.0
+        with:
+          install-type: 'binary'
+          version: '0.51.1'
+
       - name: Login to Quay
         uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
           registry: ${{ inputs.registry }}
           username: ${{ secrets.QUAY_USERID }}
           password: ${{ secrets.QUAY_PASSWORD }}
+
       - name: Determine Repository Name
         run: |
           IMAGE_REPO=$(echo "${{ inputs.image_repo_tag }}" | awk -F: '{print $1}')
@@ -155,6 +162,16 @@ jobs:
             --amend ${{ env.IMAGE_REPO }}:latest-arm64
           MANIFEST_DIGEST=$(docker manifest push ${{ inputs.image_repo_tag }})
           echo "digest=${MANIFEST_DIGEST}" >> $GITHUB_OUTPUT
+
+      - name: Generate SBOM
+        run: |
+          trivy image --format cyclonedx --output sbom.cyclonedx.json ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }}
+
+      - name: Attest SBOM
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          cosign attest --yes --predicate sbom.cyclonedx.json --type cyclonedx ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }}
 
       - name: Sign the images
         run: |
