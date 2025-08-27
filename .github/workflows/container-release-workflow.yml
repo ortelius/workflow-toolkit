@@ -80,7 +80,7 @@ jobs:
       - name: Determine Temporary Tag
         id: prep_tag
         run: |
-          IMAGE_REPO="${{ inputs.image_repo_tag }%:*}"
+          IMAGE_REPO=$(echo "${{ inputs.image_repo_tag }}" | awk -F: '{print $1}')
           TEMP_TAG="${IMAGE_REPO}:latest-${{ env.ARCH }}"
           echo "TEMP_TAG=${TEMP_TAG}" >> $GITHUB_ENV
 
