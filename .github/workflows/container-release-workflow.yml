@@ -136,12 +136,6 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
 
-      - name: Install Trivy
-        uses: aquasecurity/trivy-action@675a03621453a3915155b4109403362117f7d206 # v0.26.0
-        with:
-          install-type: 'binary'
-          version: '0.51.1'
-
       - name: Login to Quay
         uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
@@ -163,9 +157,14 @@ jobs:
           MANIFEST_DIGEST=$(docker manifest push ${{ inputs.image_repo_tag }})
           echo "digest=${MANIFEST_DIGEST}" >> $GITHUB_OUTPUT
 
-      - name: Generate SBOM
-        run: |
-          trivy image --format cyclonedx --output sbom.cyclonedx.json ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }}
+      - name: Run Trivy in GitHub SBOM mode and submit results to Dependency Graph
+        uses: aquasecurity/trivy-action@0.33.0
+        with:
+          scan-type: 'image'
+          format: 'cyclonedx'
+          output: 'sbom.cyclonedx.json'
+          image-ref: ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }}
+          github-pat: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Attest SBOM
         env:
