@@ -110,6 +110,7 @@ jobs:
           python main.py --loaddata
 
       - name: Build and Push Docker Image for ${{ env.ARCH }}
+        id: build_and_push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
@@ -117,6 +118,15 @@ jobs:
           tags: ${{ env.TEMP_TAG }}
           platforms: ${{ matrix.platform }}
         timeout-minutes: 100
+
+      # Step to save the image digest as an artifact
+      - name: Upload digest artifact
+        uses: actions/upload-artifact@a8a3f3035b797de4d759e6de37b8f61546ddef34 # v4.3.4
+        with:
+          name: digest-${{ matrix.arch }}
+          files: |
+            ${{ runner.temp }}/digest.txt
+          contents: ${{ steps.build_and_push.outputs.digest }}
 
   release:
     needs: build
@@ -148,12 +158,28 @@ jobs:
           IMAGE_REPO=$(echo "${{ inputs.image_repo_tag }}" | awk -F: '{print $1}')
           echo "IMAGE_REPO=${IMAGE_REPO}" >> $GITHUB_ENV
 
+      # Step to download the digest artifacts from the build job
+      - name: Download digest artifacts
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.9
+        with:
+          path: digests
+
+      # Updated step to use digests instead of tags
       - name: Create and Push Manifest
         id: manifest
         run: |
+          # Read the digests from the downloaded artifact files
+          AMD64_DIGEST=$(cat digests/digest-amd64/digest.txt)
+          ARM64_DIGEST=$(cat digests/digest-arm64/digest.txt)
+
+          echo "AMD64 Digest: ${AMD64_DIGEST}"
+          echo "ARM64 Digest: ${ARM64_DIGEST}"
+
+          # Create the manifest using the immutable digests
           docker manifest create ${{ inputs.image_repo_tag }} \
-            --amend ${{ env.IMAGE_REPO }}:latest-amd64 \
-            --amend ${{ env.IMAGE_REPO }}:latest-arm64
+            "${{ env.IMAGE_REPO }}@${AMD64_DIGEST}" \
+            "${{ env.IMAGE_REPO }}@${ARM64_DIGEST}"
+
           MANIFEST_DIGEST=$(docker manifest push ${{ inputs.image_repo_tag }})
           echo "digest=${MANIFEST_DIGEST}" >> $GITHUB_OUTPUT
 
