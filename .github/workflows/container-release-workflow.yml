@@ -16,6 +16,7 @@ on:
         required: true
         type: string
       image_repo_tag:
+        description: "The full container image repository and tag (e.g., quay.io/ortelius/ms-sbom-export:main-v10.0.715-gfcefa2)"
         required: true
         type: string
       loaddata:
@@ -40,7 +41,6 @@ on:
 
 jobs:
   build:
-    # This job runs two parallel builds using a matrix strategy on native runners.
     if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
     strategy:
       fail-fast: false
@@ -58,27 +58,34 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.7.1
         with:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3
         with:
           version: v0.14.0
 
       - name: Login to Quay
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
         with:
           registry: ${{ inputs.registry }}
           username: ${{ secrets.QUAY_USERID }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
+      - name: Determine Temporary Tag
+        id: prep_tag
+        run: |
+          IMAGE_REPO="${{ inputs.image_repo_tag }%:*}"
+          TEMP_TAG="${IMAGE_REPO}:latest-${{ env.ARCH }}"
+          echo "TEMP_TAG=${TEMP_TAG}" >> $GITHUB_ENV
+
       - name: Cache Data File
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4
         id: cache
         with:
           path: |
@@ -87,7 +94,7 @@ jobs:
 
       - name: Setup Python
         if: ${{ inputs.loaddata && steps.cache.outputs.cache-hit != 'true' }}
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5
         with:
           python-version: 3.11
 
@@ -103,17 +110,16 @@ jobs:
           python main.py --loaddata
 
       - name: Build and Push Docker Image for ${{ env.ARCH }}
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
         with:
           context: .
           push: true
-          tags: ${{ inputs.image_repo_tag }}-${{ env.ARCH }}
+          tags: ${{ env.TEMP_TAG }}
           platforms: ${{ matrix.platform }}
           attests: type=provenance,type=sbom
         timeout-minutes: 100
 
   release:
-    # This job waits for all matrix builds to succeed before creating the manifest.
     needs: build
     if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
@@ -121,34 +127,40 @@ jobs:
       digest: ${{ steps.manifest.outputs.digest }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.7.1
         with:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+        uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 # v3.5.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3
         with:
           version: v0.14.0
 
       - name: Login to Quay
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
         with:
           registry: ${{ inputs.registry }}
           username: ${{ secrets.QUAY_USERID }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
+      # NEW: This step derives the repository name for use in manifest creation
+      - name: Determine Repository Name
+        run: |
+          IMAGE_REPO="${{ inputs.image_repo_tag }%:*}"
+          echo "IMAGE_REPO=${IMAGE_REPO}" >> $GITHUB_ENV
+
       - name: Create and Push Manifest
         id: manifest
         run: |
           docker manifest create ${{ inputs.image_repo_tag }} \
-            --amend ${{ inputs.image_repo_tag }}-amd64 \
-            --amend ${{ inputs.image_repo_tag }}-arm64
+            --amend ${{ env.IMAGE_REPO }}:latest-amd64 \
+            --amend ${{ env.IMAGE_REPO }}:latest-arm64
           MANIFEST_DIGEST=$(docker manifest push ${{ inputs.image_repo_tag }})
           echo "digest=${MANIFEST_DIGEST}" >> $GITHUB_OUTPUT
 
@@ -199,19 +211,18 @@ jobs:
         shell: bash
 
   build_only:
-    # This job handles the "else" case for builds that are not a push to main.
     if: ${{ !(inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3
         with:
           version: v0.14.0
 
       - name: Build Docker Image
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
         with:
           tags: ${{ inputs.image_repo_tag }}
