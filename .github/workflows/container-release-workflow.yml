@@ -203,7 +203,7 @@ jobs:
             docker stop swagger
             sed -i.bak "/\[Discord\]/q" README.md && openapi-to-md openapi.json | tail -n +2 >> README.md && rm README.md.bak
             git pull
-            git add .
+            git add openapi.json README.md
             git commit -m "docs: auto-update swagger documentation" || true
             git push
           fi
