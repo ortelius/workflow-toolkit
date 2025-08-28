@@ -171,28 +171,22 @@ jobs:
         uses: aquasecurity/trivy-action@f9424c10c36e288d5fa79bd3dfd1aeb2d6eae808 # 0.33.0
         with:
           scan-type: 'image'
-          format: 'spdx-json'
-          output: 'sbom.spdx.json'
+          format: 'cyclonedx'
+          output: 'sbom.cyclonedx.json'
           image-ref: ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }}
           github-pat: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Attest SBOM
-        env:
-          COSIGN_EXPERIMENTAL: 1
         run: |
-          cosign attest --yes --predicate sbom.spdx.json --type spdxjson ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }}
+          cosign attest --yes --predicate sbom.cyclonedx.json --type cyclonedx ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }}
 
       - name: Sign the images
         run: |
           cosign sign --yes ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }}
-        env:
-          COSIGN_EXPERIMENTAL: 1
 
       - name: Verify the pushed tags
         run: |
           cosign verify ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }} --certificate-identity-regexp 'https://github\.com/ortelius/workflow-toolkit/\.github/workflows/.+' --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' | jq "."
-        env:
-          COSIGN_EXPERIMENTAL: 1
 
       - name: Swagger
         if: ${{ env.GH_TOKEN != '' }}
