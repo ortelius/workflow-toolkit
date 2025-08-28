@@ -122,7 +122,7 @@ jobs:
       - name: Create digest file
         run: echo "${{ steps.build_and_push.outputs.digest }}" > digest.txt
       - name: Upload digest artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: digest-${{ matrix.arch }}
           path: digest.txt
@@ -159,7 +159,7 @@ jobs:
 
       # Step to download the digest artifacts from the build job
       - name: Download digest artifacts
-        uses: actions/download-artifact@v5.0.0
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
 
       # Updated step to use digests instead of tags
       - name: Create and Push Manifest
@@ -181,7 +181,7 @@ jobs:
           echo "digest=${MANIFEST_DIGEST}" >> $GITHUB_OUTPUT
 
       - name: Run Trivy in GitHub SBOM mode and submit results to Dependency Graph
-        uses: aquasecurity/trivy-action@0.33.0
+        uses: aquasecurity/trivy-action@f9424c10c36e288d5fa79bd3dfd1aeb2d6eae808 # 0.33.0
         with:
           scan-type: 'image'
           format: 'cyclonedx'
