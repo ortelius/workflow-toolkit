@@ -171,8 +171,8 @@ jobs:
         uses: aquasecurity/trivy-action@f9424c10c36e288d5fa79bd3dfd1aeb2d6eae808 # 0.33.0
         with:
           scan-type: 'image'
-          format: 'cyclonedx'
-          output: 'sbom.cyclonedx.json'
+          format: 'spdx-json'
+          output: 'sbom.spdx.json'
           image-ref: ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }}
           github-pat: ${{ secrets.GITHUB_TOKEN }}
 
@@ -180,7 +180,7 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: 1
         run: |
-          cosign attest --yes --predicate sbom.cyclonedx.json --type cyclonedx ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }}
+          cosign attest --yes --predicate sbom.spdx.json --type spdxjson ${{ inputs.image_repo_tag }}@${{ steps.manifest.outputs.digest }}
 
       - name: Sign the images
         run: |
@@ -210,5 +210,6 @@ jobs:
             sed -i.bak "/\[Discord\]/q" README.md && openapi-to-md openapi.json | tail -n +2 >> README.md && rm README.md.bak
             git pull
             git add .
-            git commit
+            git commit -m "docs: auto-update swagger documentation" || true
+            git push
           fi
