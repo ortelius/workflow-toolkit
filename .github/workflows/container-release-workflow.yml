@@ -159,17 +159,15 @@ jobs:
 
       # Step to download the digest artifacts from the build job
       - name: Download digest artifacts
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.9
-        with:
-          path: digests
+        uses: actions/download-artifact@v5.0.0
 
       # Updated step to use digests instead of tags
       - name: Create and Push Manifest
         id: manifest
         run: |
           # Read the digests from the downloaded artifact files
-          AMD64_DIGEST=$(cat digests/digest-amd64/digest.txt)
-          ARM64_DIGEST=$(cat digests/digest-arm64/digest.txt)
+          AMD64_DIGEST=$(cat digest-amd64/digest.txt)
+          ARM64_DIGEST=$(cat digest-arm64/digest.txt)
 
           echo "AMD64 Digest: ${AMD64_DIGEST}"
           echo "ARM64 Digest: ${ARM64_DIGEST}"
