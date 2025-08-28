@@ -67,14 +67,7 @@ jobs:
 
       - name: Pull SBOM from Image
         run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-          if [ "$(docker buildx imagetools inspect "${{ inputs.image_repo_tag }}" --raw | jq -r '.manifests | map(select(.platform.architecture != "unknown")) | length')" -eq 1 ]; then
-            docker buildx imagetools inspect "${{ inputs.image_repo_tag }}" --format "{{ json .SBOM.SPDX }}" > /tmp/spdx.json
-          else
-            docker buildx imagetools inspect "${{ inputs.image_repo_tag }}" --format '{{ json (index .SBOM "linux/amd64").SPDX}}' > /tmp/spdx.json
-          fi
-          syft convert /tmp/spdx.json -o cyclonedx-json=/tmp/cyclonedx.json
-
+          cosign verify-attestation "${{ inputs.image_repo_tag }}" --certificate-identity-regexp '.*'  --certificate-oidc-issuer-regexp '.*' --type cyclonedx | jq -r ".payload" | base64 -d > /tmp/cyclonedx.json
       - name: Update Compnent
         id: updatecomp
         env:
