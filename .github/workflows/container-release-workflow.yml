@@ -121,7 +121,7 @@ jobs:
 
       # Step to save the image digest as an artifact
       - name: Upload digest artifact
-        uses: actions/upload-artifact@a8a3f3035b797de4d759e6de37b8f61546ddef34 # v4.3.4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: digest-${{ matrix.arch }}
           files: |
