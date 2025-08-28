@@ -110,15 +110,15 @@ jobs:
           python main.py --loaddata
 
       - name: Build and Push Docker Image for ${{ env.ARCH }}
+        id: build_and_push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
           push: true
+          load: true
           tags: ${{ env.TEMP_TAG }}
           platforms: ${{ matrix.platform }}
         timeout-minutes: 100
-      # Digest artifact steps are no longer needed
-
   release:
     needs: build
     if: ${{ inputs.gh_repository_owner == 'ortelius' && inputs.gh_event_name == 'push' && inputs.gh_ref == 'refs/heads/main' }}
@@ -133,12 +133,6 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      # =======================================================
-      # === ADDED: Install regctl                           ===
-      # =======================================================
-      - name: Install regctl
-        uses: regclient/actions/regctl-installer@v0.5.2
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
@@ -155,23 +149,26 @@ jobs:
           IMAGE_REPO=$(echo "${{ inputs.image_repo_tag }}" | awk -F: '{print $1}')
           echo "IMAGE_REPO=${IMAGE_REPO}" >> $GITHUB_ENV
 
-      # =======================================================
-      # === REPLACED: Create manifest using regctl          ===
-      # =======================================================
-      - name: Create and Push Manifest with regctl
+      # Updated step to use digests instead of tags
+      - name: Create and Push Manifest
         id: manifest
         run: |
-          # Use regctl to create and push the manifest list in a single command
-          regctl manifest set ${{ inputs.image_repo_tag }} \
-            --platform linux/amd64 ${{ env.IMAGE_REPO }}:latest-amd64 \
-            --platform linux/arm64 ${{ env.IMAGE_REPO }}:latest-arm64
+          AMD64_DIGEST=$(docker manifest inspect ${{ env.IMAGE_REPO }}:latest-amd64 | jq -r '.manifests[0].digest')
+          ARM64_DIGEST=$(docker manifest inspect ${{ env.IMAGE_REPO }}:latest-arm64 | jq -r '.manifests[0].digest')
 
-          # Get the digest of the manifest list we just created for subsequent steps
-          MANIFEST_DIGEST=$(regctl image digest ${{ inputs.image_repo_tag }})
+          echo "Found AMD64 Digest: ${AMD64_DIGEST}"
+          echo "Found ARM64 Digest: ${ARM64_DIGEST}"
+
+          # Create the manifest using the immutable digests
+          docker manifest create ${{ inputs.image_repo_tag }} \
+            "${{ env.IMAGE_REPO }}@${AMD64_DIGEST}" \
+            "${{ env.IMAGE_REPO }}@${ARM64_DIGEST}"
+
+          MANIFEST_DIGEST=$(docker manifest push ${{ inputs.image_repo_tag }})
           echo "digest=${MANIFEST_DIGEST}" >> $GITHUB_OUTPUT
 
       - name: Run Trivy in GitHub SBOM mode and submit results to Dependency Graph
-        uses: aquasecurity/trivy-action@0.33.0
+        uses: aquasecurity/trivy-action@f9424c10c36e288d5fa79bd3dfd1aeb2d6eae808 # 0.33.0
         with:
           scan-type: 'image'
           format: 'cyclonedx'
