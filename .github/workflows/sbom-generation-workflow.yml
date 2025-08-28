@@ -68,6 +68,7 @@ jobs:
       - name: Pull SBOM from Image
         run: |
           cosign verify-attestation "${{ inputs.image_repo_tag }}" --certificate-identity-regexp '.*'  --certificate-oidc-issuer-regexp '.*' --type cyclonedx | jq -r ".payload" | base64 -d | jq -r ".predicate" > /tmp/cyclonedx.json
+          cat /tmp/cyclonedx.json
       - name: Update Compnent
         id: updatecomp
         env:
