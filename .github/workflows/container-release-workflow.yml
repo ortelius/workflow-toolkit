@@ -119,14 +119,13 @@ jobs:
           platforms: ${{ matrix.platform }}
         timeout-minutes: 100
 
-      # Step to save the image digest as an artifact
+      - name: Create digest file
+        run: echo "${{ steps.build_and_push.outputs.digest }}" > digest.txt
       - name: Upload digest artifact
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v4
         with:
           name: digest-${{ matrix.arch }}
-          files: |
-            ${{ runner.temp }}/digest.txt
-          contents: ${{ steps.build_and_push.outputs.digest }}
+          path: digest.txt
 
   release:
     needs: build
