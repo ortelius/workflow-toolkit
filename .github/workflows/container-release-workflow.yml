@@ -211,3 +211,4 @@ jobs:
             git pull
             git add .
             git commit
+          fi
