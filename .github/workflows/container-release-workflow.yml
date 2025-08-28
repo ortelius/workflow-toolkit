@@ -110,24 +110,14 @@ jobs:
           python main.py --loaddata
 
       - name: Build and Push Docker Image for ${{ env.ARCH }}
-        id: build_and_push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
           push: true
-          load: true
           tags: ${{ env.TEMP_TAG }}
           platforms: ${{ matrix.platform }}
         timeout-minutes: 100
-
-      - name: Create digest file
-        run: docker inspect --format='{{index .RepoDigests 0}}' ${{ env.TEMP_TAG }} | cut -d'@' -f2 > digest.txt
-
-      - name: Upload digest artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: digest-${{ matrix.arch }}
-          path: digest.txt
+      # Digest artifact steps are no longer needed
 
   release:
     needs: build
@@ -144,6 +134,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
+      # =======================================================
+      # === ADDED: Install regctl                           ===
+      # =======================================================
+      - name: Install regctl
+        uses: regclient/actions/regctl-installer@v0.5.2
+
       - name: Install Cosign
         uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
 
@@ -159,34 +155,23 @@ jobs:
           IMAGE_REPO=$(echo "${{ inputs.image_repo_tag }}" | awk -F: '{print $1}')
           echo "IMAGE_REPO=${IMAGE_REPO}" >> $GITHUB_ENV
 
-      # Step to download the digest artifacts from the build job
-      - name: Download digest artifacts
-        uses: actions/download-artifact@v5.0.0
-        with:
-          pattern: digest-*
-
-      # Updated step to use digests instead of tags
-      - name: Create and Push Manifest
+      # =======================================================
+      # === REPLACED: Create manifest using regctl          ===
+      # =======================================================
+      - name: Create and Push Manifest with regctl
         id: manifest
         run: |
-          # Read the digests from the downloaded artifact files
-          ls -lR
-          AMD64_DIGEST=$(cat digest-amd64/digest.txt)
-          ARM64_DIGEST=$(cat digest-arm64/digest.txt)
+          # Use regctl to create and push the manifest list in a single command
+          regctl manifest set ${{ inputs.image_repo_tag }} \
+            --platform linux/amd64 ${{ env.IMAGE_REPO }}:latest-amd64 \
+            --platform linux/arm64 ${{ env.IMAGE_REPO }}:latest-arm64
 
-          echo "AMD64 Digest: ${AMD64_DIGEST}"
-          echo "ARM64 Digest: ${ARM64_DIGEST}"
-
-          # Create the manifest using the immutable digests
-          docker manifest create ${{ inputs.image_repo_tag }} \
-            "${{ env.IMAGE_REPO }}@${AMD64_DIGEST}" \
-            "${{ env.IMAGE_REPO }}@${ARM64_DIGEST}"
-
-          MANIFEST_DIGEST=$(docker manifest push ${{ inputs.image_repo_tag }})
+          # Get the digest of the manifest list we just created for subsequent steps
+          MANIFEST_DIGEST=$(regctl image digest ${{ inputs.image_repo_tag }})
           echo "digest=${MANIFEST_DIGEST}" >> $GITHUB_OUTPUT
 
       - name: Run Trivy in GitHub SBOM mode and submit results to Dependency Graph
-        uses: aquasecurity/trivy-action@f9424c10c36e288d5fa79bd3dfd1aeb2d6eae808 # 0.33.0
+        uses: aquasecurity/trivy-action@0.33.0
         with:
           scan-type: 'image'
           format: 'cyclonedx'
