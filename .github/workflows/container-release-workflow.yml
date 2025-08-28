@@ -120,7 +120,8 @@ jobs:
         timeout-minutes: 100
 
       - name: Create digest file
-        run: echo "${{ steps.build_and_push.outputs.digest }}" > digest.txt
+        run: echo '${{ steps.build_and_push.outputs.metadata }}' | jq -r '."docker.io/docker/build-push-action.image.digest"' > digest.txt
+
       - name: Upload digest artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
