@@ -115,12 +115,13 @@ jobs:
         with:
           context: .
           push: true
+          load: true
           tags: ${{ env.TEMP_TAG }}
           platforms: ${{ matrix.platform }}
         timeout-minutes: 100
 
       - name: Create digest file
-        run: echo '${{ steps.build_and_push.outputs.metadata }}' | jq -r '."docker.io/docker/build-push-action.image.digest"' > digest.txt
+        run: docker inspect --format='{{index .RepoDigests 0}}' ${{ env.TEMP_TAG }} | cut -d'@' -f2 > digest.txt
 
       - name: Upload digest artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
