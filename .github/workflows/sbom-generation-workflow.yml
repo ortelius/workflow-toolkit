@@ -82,6 +82,6 @@ jobs:
           IMAGE_VERSION: ${{ inputs.image_version }}
           GIT_TRIGGER: ${{ github.event_name }}
         run: |
-          curl -sSL "https://github.com/ortelius/ortelius-cli/releases/latest/download/ortelius-$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]' | sed 's/macos/darwin/')-${{ runner.arch }}.tgz" | tar -xzv -C /usr/local/bin ortelius
+            curl -sSL "https://github.com/ortelius/ortelius-cli/releases/latest/download/ortelius-$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]' | sed 's/macos/darwin/')-${{ runner.arch }}.tgz" | tar -xzv -C /usr/local/bin ortelius
           ortelius updatecomp --rsp component.toml --deppkg cyclonedx@/tmp/cyclonedx.json
         shell: bash
