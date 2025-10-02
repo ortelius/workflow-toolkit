@@ -66,21 +66,21 @@ jobs:
       - name: Pull SBOM from Image
         run: |
           cosign verify-attestation "${{ inputs.image_repo_tag }}" --certificate-identity-regexp '.*'  --certificate-oidc-issuer-regexp '.*' --type cyclonedx | jq -r ".payload" | base64 -d | jq -r ".predicate" > /tmp/cyclonedx.json
-      - name: Update Compnent
-        id: updatecomp
+      - name: Ortelius Update Compnent
+        id: ortelius
         env:
-          DHURL: ${{ inputs.dhurl }}
-          DHUSER: ${{ secrets.DHUSER }}
-          DHPASS: ${{ secrets.DHPASS }}
-          GIT_BRANCH: ${{ inputs.branch }}
           CHART_VERSION: ${{ inputs.chart_version }}
           COMPNAME: ${{ inputs.compname }}
+          DHPASS: ${{ secrets.DHPASS }}
+          DHURL: ${{ inputs.dhurl }}
+          DHUSER: ${{ secrets.DHUSER }}
           DIGEST: ${{ inputs.digest }}
-          IMAGE_REPO: ${{ inputs.image_repository }}
+          GIT_BRANCH: ${{ inputs.branch }}
+          GIT_TRIGGER: ${{ github.event_name }}
           IMAGE_REPO_TAG: ${{ inputs.image_repo_tag }}
+          IMAGE_REPO: ${{ inputs.image_repository }}
           IMAGE_TAG: ${{ inputs.image_tag }}
           IMAGE_VERSION: ${{ inputs.image_version }}
-          GIT_TRIGGER: ${{ github.event_name }}
         run: |
           curl -sSL "https://github.com/ortelius/ortelius-cli/releases/latest/download/ortelius-$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]' | sed 's/macos/darwin/')-${{ runner.arch }}.tgz" | tar -xzv -C /usr/local/bin ortelius
           ortelius updatecomp --rsp component.toml --deppkg cyclonedx@/tmp/cyclonedx.json
