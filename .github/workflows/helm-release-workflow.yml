@@ -132,7 +132,8 @@ jobs:
           git push
           # Add a check for deploy.json existence
           if [ -f "deploy.json" ]; then
-            curl -sSL "https://github.com/ortelius/ortelius-cli/releases/latest/download/ortelius-$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]' | sed 's/macos/darwin/')-${{ runner.arch }}.tgz" | tar -xzv -C /usr/local/bin ortelius
+            set -x
+            wget -qO- https://github.com/ortelius/ortelius-cli/releases/latest/download/ortelius-$(echo "${{ runner.os }}-${{ runner.arch }}" | tr A-Z a-z | sed 's/macos/darwin/; s/x64/amd64/').tgz | tar -xzv -C /usr/local/bin ortelius
             ortelius deploy --logdeployment --deploydata deploy.json --appautoinc N
           else
             echo "deploy.json does not exist. Skipping ortelius command."
