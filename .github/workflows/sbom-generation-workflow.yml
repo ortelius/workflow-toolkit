@@ -83,5 +83,5 @@ jobs:
           IMAGE_VERSION: ${{ inputs.image_version }}
         run: |
           set -x
-          curl -sL https://github.com/ortelius/ortelius-cli/releases/latest/download/ortelius-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz | sudo tar xz -C /usr/local/bin
+          curl -sL https://github.com/ortelius/ortelius-cli/releases/latest/download/ortelius-$(uname -s | tr A-Z a-z)-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz | tar xz -C /usr/local/bin
           ortelius updatecomp --rsp component.toml --deppkg cyclonedx@/tmp/cyclonedx.json
