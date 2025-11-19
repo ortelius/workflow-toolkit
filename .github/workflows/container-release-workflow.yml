@@ -80,9 +80,14 @@ jobs:
       - name: Determine Temporary Tag
         id: prep_tag
         run: |
+          # Use shell parameter expansion to get the tag (part after the last :)
+          FINAL_IMAGE_TAG="${{ inputs.image_repo_tag }##*:}"
+
           IMAGE_REPO=$(echo "${{ inputs.image_repo_tag }}" | awk -F: '{print $1}')
           TEMP_TAG="${IMAGE_REPO}:latest-${{ env.ARCH }}"
+          
           echo "TEMP_TAG=${TEMP_TAG}" >> $GITHUB_ENV
+          echo "FINAL_IMAGE_TAG=${FINAL_IMAGE_TAG}" >> $GITHUB_ENV
 
       - name: Cache Data File
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -123,7 +128,7 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.url=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ split(inputs.image_repo_tag, ':')[1] }}
+            org.opencontainers.image.version=${{ env.FINAL_IMAGE_TAG }}
             org.opencontainers.image.ref.name=${{ inputs.image_repo_tag }}
             org.opencontainers.image.licenses=Apache-2.0
             org.opencontainers.image.vendor=Ortelius
