@@ -164,7 +164,8 @@ jobs:
 
           # Helm Package with signing
           tag=$(basename "$(helm package "${{ inputs.chart }}" -u --key "${{ secrets.gpg_key }}" --sign --keyring "${gpg_keyring}" --passphrase-file "${gpg_passphrase_file}" | cut -d: -f2)" .tgz)
-          echo "Created ${tag}"
+          reltag=$(echo ${tag} | sed -E 's/.*-([0-9]+\.[0-9]+\.[0-9]+)$/v\1/')
+          echo "Created ${reltag}"
 
           # Clean up GPG and intermediate tgz files
           rm -rf "${gpg_keyring}" "${gpg_passphrase_file}" "${{ inputs.chart }}/charts"
@@ -173,12 +174,12 @@ jobs:
           find . -maxdepth 1 -type f -name '*.prov' -exec sh -c 'cp "$1" "$(basename "$1" .prov).asc"' _ {} \;
 
           # Remove existing tags and releases
-          gh release delete "${tag}" --cleanup-tag -y || true
+          gh release delete "${reltag}" --cleanup-tag -y || true
 
           # Create a new commit and release
-          git tag -f "${tag}"
+          git tag -f "${reltag}"
           git push -f --tags
-          release=$(gh release create "${tag}" "${tag}".* --title "${tag}" --notes "${{ inputs.notes }}" | sed 's#/tag/#/download/#')
+          release=$(gh release create "${reltag}" "${tag}".* --title "${reltag}" --notes "${{ inputs.notes }}" | sed 's#/tag/#/download/#')
 
           # Copy the release .tgz for indexing
           mkdir -p /tmp/charts
@@ -210,12 +211,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.gh_token }}
 
-      - name: Trigger Rebuild of ortelius/scec-charts
+      - name: Trigger Rebuild of ortelius/pdvd-charts
         if: "${{ contains(github.repository, 'scec-') && inputs.chart_version != '' }}"
         uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
         with:
           event-type: generate-main-chart
-          repository: ortelius/scec-charts
+          repository: ortelius/pdvd-charts
           token: ${{ secrets.gh_token }}
 
       - name: Trigger Rebuild of ortelius/ortelius-charts
