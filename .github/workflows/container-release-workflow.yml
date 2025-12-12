@@ -90,7 +90,7 @@ jobs:
           echo "FINAL_IMAGE_TAG=${FINAL_IMAGE_TAG}" >> $GITHUB_ENV
 
       - name: Cache Data File
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5
         id: cache
         with:
           path: |
