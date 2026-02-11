@@ -212,7 +212,7 @@ jobs:
           GH_TOKEN: ${{ secrets.gh_token }}
 
       - name: Trigger Rebuild of ortelius/pdvd-charts
-        if: "${{ contains(github.repository, 'scec-') && inputs.chart_version != '' }}"
+        if: "${{ contains(github.repository, 'pdvd-') && inputs.chart_version != '' }}"
         uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
         with:
           event-type: generate-main-chart
