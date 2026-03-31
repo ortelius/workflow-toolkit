@@ -81,7 +81,7 @@ jobs:
 
       - name: Checkout
         id: checkout
-        uses: actions/checkout@latest
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 1
 
