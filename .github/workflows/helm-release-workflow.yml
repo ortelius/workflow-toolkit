@@ -85,12 +85,12 @@ jobs:
 
       - name: Install Helm
         id: helm
-        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+        uses: azure/setup-helm@v5.0.0
 
       - name: Update Values and Chart
         if: "${{ inputs.chart_version != '' }}"
         id: chart
-        uses: fjogeleit/yaml-update-action@04ff6ec06568fd21197db746472e36cc425de850 # main
+        uses: fjogeleit/yaml-update-action@v0.16.1
         with:
           commitChange: false
           changes: |
