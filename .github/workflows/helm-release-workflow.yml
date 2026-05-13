@@ -38,6 +38,10 @@ on:
         required: false
         type: string
         default: ""
+      run_number:
+        required: false
+        type: string
+        default: ""  
     secrets:
       GPG_KEYRING_BASE64:
         required: true
@@ -122,6 +126,7 @@ jobs:
           DHURL: ${{ inputs.dhurl }}
           DHUSER: ${{ secrets.DHUSER }}
           DHPASS: ${{ secrets.DHPASS }}
+          RUN_NUMBER: ${{ inputs.run_number }}
         run: |
           sleep 5m
           yarn install
