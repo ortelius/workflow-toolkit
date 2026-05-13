@@ -109,14 +109,14 @@ jobs:
             }
 
       - name: Use Node.js
-        if: "${{ inputs.chart_version == '' }}"
+        if: "${{ inputs.gh_event_name == 'repository_dispatch' || inputs.gh_event_name == 'workflow_dispatch' }}"
         id: node
         uses: actions/setup-node@v6.3.0
         with:
           node-version: "24.x"
 
       - name: Update Main Chart
-        if: "${{ inputs.chart_version == '' }}"
+        if: "${{ inputs.gh_event_name == 'repository_dispatch' || inputs.gh_event_name == 'workflow_dispatch' }}"
         id: main_chart
         env:
           DHURL: ${{ inputs.dhurl }}
